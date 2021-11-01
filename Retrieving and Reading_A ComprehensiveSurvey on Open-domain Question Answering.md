@@ -1,5 +1,3 @@
-$$f(x)= if x < x_{min} : (x/x_{min})^a$$
-
 # [Retrieving and Reading : A ComprehensiveSurvey on Open-domain Question Answering](https://arxiv.org/abs/2101.00774)
 Fengbin Zhu, Wenqiang Lei*, Chao Wang, Jianming Zheng, Soujanya Poria, Tat-Seng Chua
 
@@ -130,11 +128,14 @@ In the past decades, various retrieval models have been developed for Document R
 > Boolean  Model:  The  Boolean  Model  is  one  of  the  simplest retrieval models. The question is transformed into the  form  of  a  Boolean  expression  of  terms,  which  are combined  with  the  operators  like  ”AND”,  ”OR”  and ”NOT” to exactly match with the documents, with each document viewed as a set of words.
 - 가장 단순한 문서 검색 모델 중 하나로, 질문을 ans나 or과 같은 연산자와 결함된  boolean 표현의 terms으로 변환하고 단어 집합으로 보는 문서와 매칭시킴
 
-> Vector Space Model: The Vector Space Models representthe  question  and  each  document  as  word  vectors  in a d-dimensional  word  space,  where d is  the  number of  words  in  the  vocabulary.  When  searching  for  relevant  documents  to  a  given  question,  the  relevance score  of  each  document  is  computed  by  computing the  similarity  (e.g.,  the  cosine  similarity)  or  distance(e.g., the euclidean distance) between its vector and the question vector. Compared to the Boolean model, this approach returns documents to the question even if the constraints posed by the question are only partially met,with precision sacrificed.
+> Vector Space Model: The Vector Space Models represent the  question  and  each  document  as  word  vectors  in a d-dimensional  word  space,  where d is  the  number of  words  in  the  vocabulary.  When  searching  for  relevant  documents  to  a  given  question,  the  relevance score  of  each  document  is  computed  by  computing the  similarity  (e.g.,  the  cosine  similarity)  or  distance(e.g., the euclidean distance) between its vector and the question vector. Compared to the Boolean model, this approach returns documents to the question even if the constraints posed by the question are only partially met, with precision sacrificed.
+- 각 질문과 문서를 vocab 개수의 차원을 크기로 가지는 vector로 변환
+- 관련 문서를 검색 시, 질문과 각 문서 사이의 유사도 혹은 거리를 계산
+- boolean과 비교하여, 이 접근법은 부분적으로 충족하더라도 문서를 반환
 
 > Probabilistic  Model:  The  Probabilistic  Models  provide  away  of  integrating  probabilistic  relationships  betweenwords  into  a  model.  Okapi  BM25  [61]  is  a  probabilis-tic  model  sensitive  to  term  frequency  and  documentlength, which is one of the most empirically successfulretrieval  models  and  widely  used  in  current  searchengines.
 
-> Language  Model:  The  Language  Models  [62]  are  also very   popular,   among   which   the   Query   LikelihoodModel  [60]  is  the  most  widely  adopted.  It  builds  aprobabilistic language model $$ LM_d $$ $$LM_d$$ for each documentdand  ranks  documents  according  to  the  probabilityP(q|LMd)of the language model generating the givenquestionq.
+> Language  Model:  The  Language  Models  [62]  are  also very   popular,   among   which   the   Query   LikelihoodModel  [60]  is  the  most  widely  adopted.  It  builds  aprobabilistic language model LM_d for each document d and ranks documents  according  to  the  probabilityP(q|LM_d)of the language model generating the given question q.
 
 In practice, the documents received often contain irrele-vant ones, or the number of documents is so large that thecapacity of theAnswer Extractionmodel is overwhelmed. Toaddress  the  above  issues,  post-processing  on  the  retrieveddocuments is very demanded. Widely used approaches onprocessing retrieved documents include document filtering,document re-ranking and document selection [9], etc. Doc-ument  filtering  is  used  to  identify  and  remove  the  noisew.r.t. a given question; document re-ranking is developed tofurther sort the documents according to a plausibility degreeof  containing  the  correct  answer  in  the  descending  order;document selection is to choose the top relevant documents.After  post-processing,  only  the  most  relevant  documentswould be remained and fed to the next stage to extract thefinal answer.
 
