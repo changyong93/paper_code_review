@@ -209,8 +209,95 @@ In this section, we introduce the “Retriever-Reader” architecture of the Ope
 
 ![image](https://user-images.githubusercontent.com/74341192/139782388-8c289603-0362-4018-96cc-850c2fb75524.png)
 
-### 3.1  Retriever
+![image](https://user-images.githubusercontent.com/74341192/139788415-0318b705-4114-44c6-83ec-fd2e94691c34.png)
 
+### 3.1  Retriever
+Retriever is usually regarded as an IR system, with the goal of  retrieving  related  documents  or  passages  that  probably contain  the  correct  answer  given  a  natural  language  question as well as ranking them in a descending order according to  their  relevancy.  Broadly,  current  approaches  to Retriever can  be  classified  into  three  categories,  i.e.Sparse  Retriever,Dense Retriever, andIterative Retriever, which will be detailedin the following.
+- Retriever는 종종 IR system으로 간주되며, 자연어로 된 질문에 대해 정확한 답변이 포함된 관련 문서나 지문을 검색하고 관련성에 따라 내림차순으로 순위를 매기는 것이 목표
+- Retriever는 세 개의 category로 구분 => Sparse Retriever, Dense Retriever, Iterative Retriever
+
+### 3.1.1 Sparse Retriever
+It  refers  to  the  systems  that  search  for  the  relevant  documents  by  adopting  classical  IR  methods  as  introduced in  Section  2.2.2,  such  as  TF-IDF  [3],  [34],  [76],  [77]  and BM25  [78],  [79].  DrQA  [3]  is  the  very  first  approach  tomodern  OpenQA  systems  and  developed  by  combiningclassical IR techniques and neural MRC models to answeropen-domain  factoid  questions.  Particularly,  the  retriever in  DrQA  adopts  bi-gram  hashing  [80]  and  TF-IDF  matching  to  search  over  Wikipedia,  given  a  natural  language question.  BERTserini  [78]  employs  Anserini  [81]  as  its  retriever, which is an opensource IR toolkit based on Lucene.In  [78],  different  granularities  of  text  including  document-level,  paragraph-level  and  sentence-level  are  investigated experimentally, and the results show paragraph-level index achieves the best performance. Traditional retrieval methods such as TF-IDF and BM25 use sparse representations to measure term match. However, the terms used in user questions are often not the same as those appearing in the documents. Various methods based on dense representations [16], [29],[30], [35] have been developed in recent years, which learn to  encode  questions  and  documents  into  a  latent  vector space  where  text  semantics  beyond  term  match  can  be measured.
+- Sparse Retriever는 section 2.2.2에서 언급한 TF-IDF나 BM25와 알고리즘을 적용하여 관련된 문서를 찾는 system
+- DrQA는 Modern OpenQA system의 초기 방법으로, open domain의 factoid questions에 대한 질문을 생성하는 neural MRC Model과 기존 IR 기술이 결합된 시스템으로 발전됨.
+- DrQA의 Retriever는 주어진 자연어 형태의 질문에 대해 bigram hashing과 TF-IDF matching 방법론을 통해 Wikipedia를 탐색
+- BertSerini는 Lucene 기반의 오픈소스 IR 툴킷인 Anserini를 retriver로 사용
+- BertSerini를 활용하여 여러 세분화된 텍스트(document-level, paragraph-level, sentence-level로)로 end-to-end OpenQA를 수행 시 paragraph-level이 가장 최고의 성능을 보임을 확인.
+- TF-IDF 및 BM25와 같은 전통적인 retrival 방법론은 term match를 측정하여 sparse representations 생성했지만, 실제론 질문에 사용된 용어와 문서에 표시된 용어가 다른 형태일 수도 있음. 따라서 다양한 Dense 기반의 방법론들이 연구되고 있으며, 질문과 문서를 laten vector space에 투영시켜 질문과 문서 사이의 유사도를 측정. 이를 통해 term mis-match 해결
+****DrQA : Domain Retriever Question Answering
+
+### 3.1.2 Dense Retriever
+Along  with  the  success  of  deep  learning  that  offers  remarkable  semantic  representation,  various  deep  retrieval models have been developed in the past few years, greatly enhancing  retrieval  effectiveness  and  thus  lifting  final  QA performance.  According  to  the  different  ways  of  encoding the  question  and  document  as  well  as  of  scoring  their similarity, dense retrievers in existing OpenQA systems can be  roughly  divided  into  three  types: Representation-based Retriever[16], [30], [37], [73],Interaction-based Retriever[15],[32], and Representation-interaction Retriever[17], [82], [83], asillustrated in Fig 5.
+- deep retrieval model은 다음과 같이 세 타입이 존재함   
+  => Representation-based Retriever, Interaction-based Retriever, Representation-interaction Retriever
+
+![image](https://user-images.githubusercontent.com/74341192/139788528-8e775f4a-40f8-46d0-bbc6-3c04642d7599.png)
+
+#### 3.1.2.1 Representation-based Retriever
+Representation-based Retriever, also called Dual-encoder or Two-tower retriever, employs two independent encoders like BERT [27] to encode the question and the document respectively, and estimates their  relevance  by  computing  a  single  similarity  score  between two representations. For example, ORQA [37] adopts two  independent  BERT-based  encoders  to  encode  a  question  and  a  document  respectively  and  the  relevance  score between them is computed by the inner product of their vectors. In order to obtain a sufficiently powerful retriever, they pre-train the retriever using Inverse Cloze Task (ICT), i.e., topredict its context given a sentence. DPR [16] also employs two  independent  BERT  encoders  like  ORQA  but  denies the necessity of the expensive pre-training stage. Instead, it focuses on learning a strong retriever using pairwise questions and answers sorely. DPR carefully designs the ways to select negative samples to a question, including any random documents  from  the  corpus,  top  documents  returned  by BM25 that do not contain the correct answer, and in-batch negatives which are the gold documents paired with otherquestions in the same batch. It is worth mentioning that their experiments show the inner product function is optimal for calculating the similarity score for a dual-encoder retriever. Representation-based  method  [16],  [16],  [30],  [37]  can  be very fast since the representations of documents can be computed and indexed offline in advance. But it may sacrifice the retrieval effectiveness because the representations of the question and document are obtained independently, leading to only shallow interactions captured between them.
+
+- Dual-encoder 혹은 Two-tower retriever라 불리는 Representation-based Retriever는 question과 document를 인코딩하기 위해 BERT와 같은 독립적인 두 개의 encoder를 사용하고, 두 representations에 대한 유사도를 측정하여 관련성을 평가함.
+- e.g.) ORQA : 2개의 bert-based encoder를 통해 출력된 question과 context representation vector를 내적하여 score를 생성. 단 주어진 문장에 대한 context를 예측하기 위해Inverse Cloze Task(ICT)를 활용하여 retriever를 pretrain 시킴.
+- e.g.) Dense Passage Retriever(DPR) : DPR 역시 두 개의 독립적인 BERT기반의 encoder를 사용. 다만 값비싼 pretraining 대신, pairwise된 questions와 answers로 고성능 retriver를 학습시키는 것에 초점을 맞춤
+  -  이 때, DPR은 negative samples, 즉 정답을 포함하지 않은 임의의 문서와 정답을 쌍으로도 생성하여 학습하는데, 랜덤하게 생성하는게 아니라, BM25가 반환한 상위 문서 및 동일 배치의 다른 문서를 선택하는 등 negative sampling을 신중하게 진행함. 따라서 dual-encoder retriver의 유사성을 검증하는데 최적.
+  -  다만, Representation-based Retriever는 문서 표현을 오프라인으로 미리 작업할 수 있어서 매우 빠르지만, 질문과 문서 표현이 독립적으로 얻어지기에 둘 사이에 얕은 상호작용을 초래할 수 있음.
+
+#### 3.1.2.2 Interaction-based Retriever
+Such  a  kind  of  retrievers take a question together with a document at the same time as input, and are powerful by usually modeling the token-level interactions between them, such as transformer-based encoder  [27],  [72].  [15]  propose  to  jointly  train Retriever and Reader using supervised multi-task learning [24]. Based on  BiDAF  [24],  a  retrieval  layer  is  added  to  compute  the relevance  score  between  question  and  document  while  a comprehension  layer  is  adopted  to  predict  the  start  and end  position  of  the  answer  span  in  [15].  [32]  develop  a paragraph-level dense Retriever and a sentence-level dense Retriever, both based on BERT [27]. They regard the process of  dense  retrieval  as  a  binary  classification  problem.  In particular, they take each pair of question and document as input and use the embedding of [CLS] token to determine whether they are relevant. Their experiments show that both paragraph-level  and  sentence-level  retrieval  are  necessary for obtaining good performance of the system. Interaction-based  method  [15],  [32]  is  powerful  as  it  allows  for  very rich interactions between question and document. However, such a method usually requires heavy computation, which is sometimes prohibitively expensive, making it hardly applicable to large-scale documents.
+- 문서와 질문을 동시에 input으로 받고, token-level에서 두 representation간 interaction을 하도록 모델링.
+- [15]Retrieve-and-read: Multi-task learning of information retrieval and reading comprehension
+  - 해당 논문에선, Retriver와 Reader를 엮어서 supervised multi-task learning을 진행
+- BiDAF은 retrieval layer에서 question과 document간 스코어를 매기는 동시에, comprehension layer에선 answer span의 start와 end position 예측.
+- [32]Revealing the importance of semantic retrieval for machine reading at scale
+  - 해당 논문에선, BERT based paragraph-level 및 sentence-level의 dense retriver를 만들고, dense retrieval process를 이진분류 문제로 간주함.
+  - 또한, question-document이 각 pair를 input으로 사용하고, [cls] token을 사용하여 question과 document가 관련이 있는지에 대한 문제로 간주.
+  - 해당 논문을 보면 paragraph-level 및 sentence-level의  retriever가 해당 시스템에서 좋은 성능을 내는데 매우 중요하다고 언급.
+- Interaction-based Retriever 방법은 매우 성능이 좋지만, 많은 연산량과 비용이 요구되어 large-scale document에 적용하기에 어려움.
+
+#### 3.1.2.3 Representation-interaction  Retriever
+In order to achieve  both  high  accuracy  and  efficiency,  some  recent systems  [17],  [82],  [83]  combine  representation-based  and interaction-based methods. For instance, ColBERT-QA [17] develops its retriever based on ColBERT [84], which extends the dual-encoder architecture by performing a simple token-level interaction step over the question and document representations to calculate the similarity score. Akin to DPR [16], ColBERT-QA  first  encodes  the  question  and  document  in-dependently  with  two  BERT  encoders.  Formally,  given  aquestionq and  a  documentd,  with  corresponding  vectors denoted asEq(lengthn) andEd(lengthm), the relevance score between them is computed as follows:
+
+![\Large S_{q,d}=\sum_{i=1}^n max_{j=1}^m E_{q_{i}} \cdot E_{d_{j}}^T\qquad\qquad(1)](https://latex.codecogs.com/svg.latex?\\Large&space;S_{q,d}=\sum_{i=1}^n&space;max_{j=1}^m&space;E_{q_{i}}&space;\cdot&space;E_{d_{j}}^T\qquad\qquad(1)) 
+
+Then,  ColBERT  computes  the  score  of  each  token  embedding  of  the  question  over  all  those  of  the  document  first, and then sums all these scores as the final relevance score between q and d. As another example, SPARTA [82] develops a neural ranker to calculate the token-level matching score using dot product between a non-contextualized encoded(e.g.,BERT  word  embedding)  question  and  a contextualized  encoded(e.g., BERT encoder) document. Concretely, given therepresentations of the question and document, the weight of each question token is computed with max-pooling, ReLU and log sequentially; the final relevance score is the sum of each question token weight. The representation-interaction method is a promising approach to dense retrieval, due to its good trade-off between effectiveness and efficiency. But it still needs to be further explored.
+
+- 성능과 효율을 모두 개선하기 위해, 최근 연구에선 위에 설명했던 representation-based & interaction-based methods를 통합하여 적용
+  - e.g.) ColBERT-QA
+    - ColBERT를 기반으로 retriever를 개발하는데, 유사성을 평가하기 위해 question과 document representation을 token-level에서 계산 
+    - DPR과 유사하게, 두 개의 BERT 인코더가 독립적으로 질문과 문서를 인코딩, 이후 질문과 문서의 각 token들 간의 score를 생성한 이후 sum을 하여 최종 score를 계산
+  - e.g.) SPARTA
+    - non-contextualized encoded question과 contextualized encoded document 사이에 dot product를 통하여 token-matching score 계산을 위한 neural Ranker 개발
+    - 여기서, question representation은 bert embedding의 결과이고, document representation은 BERT encoder를 통과 후 max-pooling & ReLU & log를 순차적으로 거쳐서 나온 값
+    - 연관성 점수는 각 question token의 weight를 sum.
+- representation-interaction method는 dense retrieval을 활용하기 위한 괜찮은 접근법이지만 아직 연구가 더 필요함.
+
+Though  effective,  Dense  Retriever  often  suffers  heavy computational  burden  when  applied  to  large-scale  documents. In order to speed up the computation, some works propose  to  compute  and  cache  the  representations  of  all documents  offline  in  advance  [16],  [29],  [30],  [35],  [37].  In this  way,  these  representations  will  not  be  changed  once computed,  which  means  the  documents  are  encoded  independently of the question, to some extent sacrificing the effectiveness of retrieval.
+- Dense Retriever는 매우 효과적이지만 대용량 문서를 다룰 때 연산량이 증폭하여 컴퓨터 리소스에 한계에 도달하게 됌.
+- 그래서, 연산 속도를 향상시키기 위해 오프라인에서 모든 문서 표현을 미리 계산하여 캐시화를 진행.
+- 단, 이 방식은 한 번 계산되면 변경되지 않으며, 문서가 질문에 어느 정도 의존적으로 인코딩되어 검색 효율성을 어느 정도 희생한다는 것으로 간주.
+
+### 3.1.3 Iterative Retriever
+Iterative Retriever aims to search for the relevant documents from  a  large  collection  in  multiple  steps  given  a  question , which  is  also  called  Multi-step  Retriever.  It  has  been  explored extensively in the past few years [29], [35], [36], [85],[86],  [87],  [88],  [89],  especially  when  answering  complex questions like those requiring multi-hop reasoning [90], [91]. In order to obtain a sufficient amount of relevant documents, the  search  queries  need  to  vary  for  different  steps  and  be reformulated based on the context information in the previous  step.  In  the  following,  we  will  elaborate  on  Iterative Retriever  based  on  its  workflow:  
+1)  Document  Retrieval: the  IR  techniques  used  to  retrieve  documents  in  every retrieval step.
+2)  Query Reformulation: the mechanism used to generate a query for each retrieval.
+3)  Retrieval Stopping Mechanism:  the  method  to  decide  when  to  terminate  the retrieval process.
+
+- Multi-step Retriever라고도 불리는 Iterative Retriever는 주어진 질문에 대해 여러 과정을 거쳐 적절한 문서를 검색해내는 것이 목표
+- Mutti-step Retriever는 지난 몇 년 간 정답을 출력하기 위해 광범위한 검색을 수행했는데, 특히 특히 multi-hop reasoning이 요구되는 복잡한 질문에 대한 답변을 생성하기 위해 매우 넓게 문서를 탐색
+- 관련 문서를 충분히 얻기 위해서, 검색 쿼리에 다양한 변화를 주어야 할 필요가 있어서, 이전 step의 context 정보를 기반으로 query를 변형.
+- Iterative Retriever는 다음과 같이 세 단계로 구성
+  1. retrieval precess마다 관련 문서를 검색하기 위한 IR 기술 적용
+  2. retrieval 마다 query를 생성하기 위한 메커니즘을 적용
+  3. 충분히 검색을 완료한 경우 retrieval process를 중단
+
+#### 3.1.3.1 Document Retrieval
+
+
+
+
+---
+
+detail한 설명 글 : https://lilianweng.github.io/lil-log/2020/10/29/open-domain-question-answering.html
 
 
 
