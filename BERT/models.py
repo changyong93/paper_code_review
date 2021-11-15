@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-# from utils import split_last, merge_last
+from utils import split_last, merge_last
 
 class Config(NamedTuple):
     "configuration for BERT model"
@@ -64,6 +64,84 @@ class Embeddings(nn.Module):
         pos = torch.arange(seq_len, dtype=torch.long, device=x.device)
         pos = pos.unsqueeze(0).expand_as(x) #(S,) => (B,S)
 
-        e = self.tok_embd(x) + self.pos_embed(pos) + self.seg_embed(seg)
+        e = self.tok_embed(x) + self.pos_embed(pos) + self.seg_embed(seg)
         return self.drop(self.norm(e))
+
+
+class MultiHeadSelfAttention(nn.Module):
+    """ Multi-headed Dot Product Attention"""
+    def __init__(self,cfg):
+        super().__init__()
+        self.proj_q - nn.Linear(cfg.dim, cfg.dim)
+        self.proj_k - nn.Linear(cfg.dim, cfg.dim)
+        self.proj_v - nn.Linear(cfg.dim, cfg.dim)
+        self.drop = nn.Drop(cfg.p_drop_attn)
+        self.score = None #for visualization
+        self.n_heads = cfg.n_heads
+
+    def forward(self,x,mask):
+        """
+        x, q(query), k(key), v(value) : (B,S,D) # (batch,seq_len, dim)
+        mask : (B,S) #(batch, seq_len)
+        * split D into (H,W) ; d = H * W (dim = n_head * width of head)
+        """
+        # -proj -> (B,S,D) -split->(B,S,H,W) -trans-> (B,H,S,W)
+        q,k,v = self.proj_q(x), self.proj_k(x), self.proj_v(x)
+        q,k,v = (split_last(x, (self.n_heads, -1)).transpose(1,2) for x in [q,k,v])
+
+        # (B, H, S, W) @ (B,H,W,S) -> (B,H,S,S) -> -softmax ->(B,H,S,S)
+        scores = q @ k.transpose(-1,-2) / np.sqrt(k.size(-1))
+        if mask is not None:
+            mask = mask[:, None, None, :].float() # mask[:,None,None,:] == mask.unsqueeze(1).unsqueeze(1)
+            scores -= 10000.0 * (1.0 - mask)
+        scores = self.drop(F.softmax(scores,dim=-1)) # apply softmax to width of head
+        #(B,H,S,S) @ (B,H,S,W) -> (B,H,S,W) -> trans -> (B,S,H,W)
+        h = (scores @ v).transpose(1,2).continuous()
+        # -merge -> (B,S,D)
+        h = merge_last(h,2)
+        self.scores = scores
+        return h
+
+class PositionWiseFeedForward(nn.Module):
+    """ FeedForward Neural Networds for each position"""
+    def __init__(self, cfg):
+        super().__init__()
+        self.fc1 = nn.Linear(cfg.dim,cfg.dim_ff)
+        self.fc2 = nn.Linear(cfg.dim_ff,cfg.dim)
+        #self.activ = lambda x : activ_fn(cfg.activ_fn, x)
+
+    def forward(self, x):
+        # (B, S, D) -> (B, S, D_ff) -> (B, S, D)
+        return self.fc2(self.fc1(x))
+
+
+class Block(nn.Module):
+    """Transformer Block"""
+    def __init__(self,cfg):
+        super().__init__()
+        self.attn = MultiHeadSelfAttention(cfg)
+        self.proj = nn.Linear(cfg.dim, cfg.dim)
+        self.norm1 = LayerNorm(cfg)
+        self.pwff = PositionWiseFeedForward(cfg)
+        self.norm2 = LayerNorm(cfg)
+        self.drop = nn.Dropout(cfg.p_drop_hidden)
+
+    def forward(self, x, mask):
+        h = self.attn(x,mask)
+        h = self.norm1(x + self.drop(self.proj(h)))
+        h = self.norm2(h + self.drop(self.pwff(h)))
+        return h
+
+class Transformer(nn.Module):
+    """trnasformer with Self.Attentive Blocks"""
+    def __init__(self,cfg):
+        super().__init__()
+        self.embed = Embeddings(cfg)
+        self.blocks = nn.ModuleList([Block(cfg) for _ in range(cfg.n_layers)])
+
+    def forward(self, x, seg, mask):
+        h = self.embed(x,seg)
+        for block in self.blocks:
+            h = block(h,mask)
+        return h
 
